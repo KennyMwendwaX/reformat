@@ -5,10 +5,10 @@ import {
   FileDown,
   Upload,
   RefreshCw,
-  Sparkles,
   CheckCircle2,
   Settings,
   AlertCircle,
+  Boxes,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -154,16 +154,30 @@ export default function ReformatConverter() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-mint-100 text-teal-900 p-6 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-teal-100 via-white to-mint-100 text-teal-900 p-6 md:p-8">
       <Toaster richColors />
       <div className="max-w-4xl mx-auto">
-        <header className="text-center mb-10">
-          <div className="inline-flex items-center justify-center p-3 bg-teal-500 rounded-full mb-6">
-            <Sparkles className="h-10 w-10 text-white" />
+        <header className="relative text-center py-8 px-4">
+          {/* Logo and title container */}
+          <div className="flex items-center justify-center gap-4 mb-3">
+            {/* Icon container */}
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-tr from-teal-500 to-purple-500 rounded-lg rotate-6 scale-105 opacity-70" />
+              <div className="relative flex items-center justify-center p-3 bg-white rounded-lg shadow-md">
+                <Boxes className="h-9 w-9 text-teal-600" />
+              </div>
+            </div>
+
+            {/* Title */}
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-teal-600 to-purple-600 bg-clip-text text-transparent">
+              Reformat
+            </h1>
           </div>
-          <h1 className="text-5xl font-bold mb-4 text-teal-800">Reformat</h1>
-          <p className="text-xl text-teal-600 max-w-2xl mx-auto">
-            Transform your files with our intelligent conversion tool
+
+          {/* Subtitle */}
+          <p className="text-lg text-gray-600">
+            Transform your files instantly with our intelligent conversion
+            engine
           </p>
         </header>
 
