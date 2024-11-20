@@ -9,9 +9,12 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
+  Zap,
+  Clock,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -22,6 +25,8 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { toast, Toaster } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { motion, AnimatePresence } from "motion/react";
 
 type FileStatus = "idle" | "uploading" | "converting" | "completed" | "failed";
 type OutputFormat = "pdf" | "docx" | "jpg" | "png" | "svg" | "gif";
@@ -38,101 +43,71 @@ interface ConvertedFile {
   convertedAt: Date;
 }
 
-// File type configurations
-const FILE_TYPE_CONFIGS = {
-  // Image formats
+const FILE_TYPE_CONFIGS: Record<
+  string,
+  { icon: string; allowedOutputs: OutputFormat[]; description: string }
+> = {
   "image/jpeg": {
     icon: "🖼️",
-    allowedOutputs: ["pdf", "png", "jpg", "gif"] as OutputFormat[],
+    allowedOutputs: ["pdf", "png", "jpg", "gif"],
     description: "JPEG Image",
   },
   "image/png": {
     icon: "🖼️",
-    allowedOutputs: ["pdf", "jpg", "gif"] as OutputFormat[],
+    allowedOutputs: ["pdf", "jpg", "gif"],
     description: "PNG Image",
   },
   "image/gif": {
     icon: "🎭",
-    allowedOutputs: ["jpg", "png", "pdf"] as OutputFormat[],
+    allowedOutputs: ["jpg", "png", "pdf"],
     description: "GIF Animation",
   },
   "image/svg+xml": {
     icon: "📐",
-    allowedOutputs: ["png", "jpg", "pdf"] as OutputFormat[],
+    allowedOutputs: ["png", "jpg", "pdf"],
     description: "SVG Vector",
   },
-  // Document formats
   "application/pdf": {
     icon: "📄",
-    allowedOutputs: ["docx", "jpg", "png"] as OutputFormat[],
+    allowedOutputs: ["docx", "jpg", "png"],
     description: "PDF Document",
   },
   "application/msword": {
     icon: "📝",
-    allowedOutputs: ["pdf", "docx"] as OutputFormat[],
+    allowedOutputs: ["pdf", "docx"],
     description: "Word Document",
   },
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
     icon: "📝",
-    allowedOutputs: ["pdf"] as OutputFormat[],
+    allowedOutputs: ["pdf"],
     description: "Word Document",
   },
-  // Add more file types as needed
 };
 
-const ReformatConverter: React.FC = () => {
+export default function ReformatConverter() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileType, setFileType] = useState<string | null>(null);
   const [outputFormat, setOutputFormat] = useState<OutputFormat | null>(null);
   const [quality, setQuality] = useState<ConversionQuality>("balanced");
   const [convertedFiles, setConvertedFiles] = useState<ConvertedFile[]>([]);
-  const [isConverting, setIsConverting] = useState(false);
+  const [, setIsConverting] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const detectFileType = async (file: File) => {
-    // Reset states
     setValidationError(null);
     setFileType(null);
     setOutputFormat(null);
 
-    // Check file size (e.g., 100MB limit)
-    const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB in bytes
+    const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
     if (file.size > MAX_FILE_SIZE) {
       setValidationError("File size exceeds 100MB limit");
       return false;
     }
 
-    // Get file type from mime type
-    const type = file.type;
-
-    // If no mime type, try to detect from file extension
-    if (!type) {
-      const extension = file.name.split(".").pop()?.toLowerCase();
-      // Map common extensions to mime types
-      const extensionMimeMap: { [key: string]: string } = {
-        pdf: "application/pdf",
-        doc: "application/msword",
-        docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        jpg: "image/jpeg",
-        jpeg: "image/jpeg",
-        png: "image/png",
-        gif: "image/gif",
-        svg: "image/svg+xml",
-      };
-      const mimeType = extension ? extensionMimeMap[extension] : null;
-
-      if (!mimeType) {
-        setValidationError("Unsupported file type");
-        return false;
-      }
-
-      setFileType(mimeType);
-      return true;
-    }
-
-    // Check if file type is supported
-    if (!FILE_TYPE_CONFIGS[type as keyof typeof FILE_TYPE_CONFIGS]) {
+    const type = file.type || getFileTypeFromExtension(file.name);
+    if (!FILE_TYPE_CONFIGS[type]) {
       setValidationError("Unsupported file type");
       return false;
     }
@@ -141,19 +116,27 @@ const ReformatConverter: React.FC = () => {
     return true;
   };
 
+  const getFileTypeFromExtension = (fileName: string): string => {
+    const extension = fileName.split(".").pop()?.toLowerCase();
+    const extensionMimeMap: { [key: string]: string } = {
+      pdf: "application/pdf",
+      doc: "application/msword",
+      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      png: "image/png",
+      gif: "image/gif",
+      svg: "image/svg+xml",
+    };
+    return extension ? extensionMimeMap[extension] || "" : "";
+  };
+
   const handleFileSelect = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
     if (file) {
-      const isValid = await detectFileType(file);
-      if (isValid) {
-        setSelectedFile(file);
-        toast.success("File type detected successfully!");
-      } else {
-        setSelectedFile(null);
-        toast.error(validationError || "Invalid file");
-      }
+      await processSelectedFile(file);
     }
   };
 
@@ -161,35 +144,27 @@ const ReformatConverter: React.FC = () => {
     event.preventDefault();
     const file = event.dataTransfer.files[0];
     if (file) {
-      const isValid = await detectFileType(file);
-      if (isValid) {
-        setSelectedFile(file);
-        toast.success("File type detected successfully!");
-      } else {
-        setSelectedFile(null);
-        toast.error(validationError || "Invalid file");
-      }
+      await processSelectedFile(file);
+    }
+  };
+
+  const processSelectedFile = async (file: File) => {
+    const isValid = await detectFileType(file);
+    if (isValid) {
+      setSelectedFile(file);
+      toast.success("File type detected successfully!");
+      setCurrentStep(1);
+    } else {
+      setSelectedFile(null);
+      toast.error(validationError || "Invalid file");
     }
   };
 
   const formatFileSize = (bytes: number): string => {
     const units = ["Bytes", "KB", "MB", "GB"];
     if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + units[i];
-  };
-
-  const getAllowedOutputFormats = () => {
-    if (!fileType) return [];
-    const config =
-      FILE_TYPE_CONFIGS[fileType as keyof typeof FILE_TYPE_CONFIGS];
-    return config ? config.allowedOutputs : [];
-  };
-
-  const getFileTypeInfo = () => {
-    if (!fileType) return null;
-    return FILE_TYPE_CONFIGS[fileType as keyof typeof FILE_TYPE_CONFIGS];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return `${parseFloat((bytes / Math.pow(1024, i)).toFixed(2))} ${units[i]}`;
   };
 
   const simulateConversion = async () => {
@@ -199,6 +174,7 @@ const ReformatConverter: React.FC = () => {
     }
 
     setIsConverting(true);
+    setCurrentStep(2);
     const newFileEntry: ConvertedFile = {
       id: Date.now().toString(),
       originalName: selectedFile.name,
@@ -227,12 +203,11 @@ const ReformatConverter: React.FC = () => {
           )
         );
       }
-
       toast.success(
         `File converted to ${outputFormat.toUpperCase()} successfully!`
       );
     } catch (error) {
-      console.log(error);
+      console.error(error);
       toast.error("Conversion failed. Please try again.");
       setConvertedFiles((prev) =>
         prev.map((file) =>
@@ -243,220 +218,287 @@ const ReformatConverter: React.FC = () => {
       );
     } finally {
       setIsConverting(false);
-      setSelectedFile(null);
-      setFileType(null);
-      setOutputFormat(null);
+      setCurrentStep(3);
     }
   };
 
+  const resetConversion = () => {
+    setSelectedFile(null);
+    setFileType(null);
+    setOutputFormat(null);
+    setCurrentStep(0);
+  };
+
+  const steps = [
+    { title: "Upload", icon: <Upload className="w-6 h-6" /> },
+    { title: "Configure", icon: <Settings className="w-6 h-6" /> },
+    { title: "Convert", icon: <RefreshCw className="w-6 h-6" /> },
+    { title: "Download", icon: <FileDown className="w-6 h-6" /> },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-6 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-mint-100 text-teal-900 p-6 md:p-8">
       <Toaster richColors />
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center p-4 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full mb-4 shadow-lg">
+      <div className="max-w-4xl mx-auto">
+        <header className="text-center mb-12">
+          <div className="inline-flex items-center justify-center p-3 bg-teal-500 rounded-full mb-6">
             <Sparkles className="h-10 w-10 text-white" />
           </div>
-          <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
-            Reformat
-          </h1>
-          <p className="mt-4 text-gray-600 text-xl max-w-2xl mx-auto">
-            Transform files effortlessly with advanced conversion capabilities
+          <h1 className="text-5xl font-bold mb-4 text-teal-800">Reformat</h1>
+          <p className="text-xl text-teal-600 max-w-2xl mx-auto">
+            Transform your files with our intelligent conversion tool
           </p>
-        </div>
+        </header>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* File Upload Section */}
-          <Card className="lg:col-span-2 border-0 shadow-xl bg-white/80 backdrop-blur">
-            <CardHeader>
-              <CardTitle className="text-2xl font-semibold text-gray-800">
-                File Conversion
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div
-                onDrop={handleFileDrop}
-                onDragOver={(e) => e.preventDefault()}
-                className={`
-                  border-2 border-dashed rounded-2xl p-8 text-center 
-                  transition-all duration-300
-                  ${
-                    selectedFile
-                      ? "border-indigo-300 bg-indigo-50/50"
-                      : "border-gray-300 hover:border-indigo-400 hover:bg-indigo-50/30"
-                  }
-                `}>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  className="hidden"
-                  onChange={handleFileSelect}
-                />
-                {!selectedFile ? (
+        <Card className="bg-white shadow-xl border-0">
+          <CardContent className="p-0">
+            <div className="flex items-center justify-between p-6 border-b border-teal-100">
+              {steps.map((step, index) => (
+                <div key={step.title} className="flex flex-col items-center">
                   <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className="cursor-pointer">
-                    <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                    <p className="text-lg font-medium text-gray-700">
-                      Drag and drop or click to upload
-                    </p>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Supports common document and image formats
-                    </p>
+                    className={`rounded-full p-3 ${
+                      index === currentStep
+                        ? "bg-teal-500 text-white"
+                        : index < currentStep
+                        ? "bg-teal-200 text-teal-700"
+                        : "bg-gray-100 text-gray-400"
+                    }`}>
+                    {step.icon}
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="text-4xl mb-2">
-                      {getFileTypeInfo()?.icon || "📄"}
+                  <span className="mt-2 text-sm font-medium">{step.title}</span>
+                </div>
+              ))}
+            </div>
+
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentStep}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="p-6">
+                {currentStep === 0 && (
+                  <div
+                    onDrop={handleFileDrop}
+                    onDragOver={(e) => e.preventDefault()}
+                    className="border-2 border-dashed border-teal-200 rounded-xl p-10 text-center transition-all duration-300 hover:border-teal-400 hover:bg-teal-50">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
+                      onChange={handleFileSelect}
+                    />
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="cursor-pointer">
+                      <Upload className="mx-auto h-16 w-16 text-teal-400 mb-4" />
+                      <p className="text-xl font-medium text-teal-800 mb-2">
+                        Drag and drop or click to upload
+                      </p>
+                      <p className="text-sm text-teal-600">
+                        Supports PDF, Word, JPG, PNG, GIF, and SVG formats
+                      </p>
                     </div>
-                    <div>
-                      <p className="text-lg font-semibold">
-                        {selectedFile.name}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {formatFileSize(selectedFile.size)} •{" "}
-                        {getFileTypeInfo()?.description}
-                      </p>
+                  </div>
+                )}
+
+                {currentStep === 1 && selectedFile && fileType && (
+                  <div className="space-y-6">
+                    <div className="flex items-center space-x-4">
+                      <div className="text-4xl">
+                        {FILE_TYPE_CONFIGS[
+                          fileType as keyof typeof FILE_TYPE_CONFIGS
+                        ]?.icon || "📄"}
+                      </div>
+                      <div>
+                        <p className="text-xl font-semibold text-teal-800">
+                          {selectedFile.name}
+                        </p>
+                        <p className="text-sm text-teal-600">
+                          {formatFileSize(selectedFile.size)} •{" "}
+                          {
+                            FILE_TYPE_CONFIGS[
+                              fileType as keyof typeof FILE_TYPE_CONFIGS
+                            ]?.description
+                          }
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-teal-700 mb-2">
+                          Convert to
+                        </label>
+                        <Select
+                          value={outputFormat || undefined}
+                          onValueChange={(value: OutputFormat) =>
+                            setOutputFormat(value)
+                          }>
+                          <SelectTrigger className="w-full bg-white border-teal-200 text-teal-800">
+                            <SelectValue placeholder="Select output format" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white border-teal-200">
+                            {FILE_TYPE_CONFIGS[
+                              fileType as keyof typeof FILE_TYPE_CONFIGS
+                            ]?.allowedOutputs.map((format) => (
+                              <SelectItem
+                                key={format}
+                                value={format}
+                                className="text-teal-800">
+                                {format.toUpperCase()} Format
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-teal-700 mb-2">
+                          Conversion Quality
+                        </label>
+                        <Select
+                          value={quality}
+                          onValueChange={(value: ConversionQuality) =>
+                            setQuality(value)
+                          }>
+                          <SelectTrigger className="w-full bg-white border-teal-200 text-teal-800">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white border-teal-200">
+                            <SelectItem value="fast" className="text-teal-800">
+                              <div className="flex items-center">
+                                <Zap className="mr-2 h-4 w-4 text-yellow-500" />
+                                Quick (Lower Quality)
+                              </div>
+                            </SelectItem>
+                            <SelectItem
+                              value="balanced"
+                              className="text-teal-800">
+                              <div className="flex items-center">
+                                <Settings className="mr-2 h-4 w-4 text-teal-500" />
+                                Balanced
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="high" className="text-teal-800">
+                              <div className="flex items-center">
+                                <Clock className="mr-2 h-4 w-4 text-blue-500" />
+                                High Quality
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                     <Button
-                      variant="outline"
-                      onClick={() => {
-                        setSelectedFile(null);
-                        setFileType(null);
-                        setOutputFormat(null);
-                      }}
-                      className="mt-4">
-                      Change File
+                      onClick={simulateConversion}
+                      disabled={!outputFormat}
+                      className="w-full py-6 text-lg bg-teal-500 hover:bg-teal-600 text-white transition-colors duration-300">
+                      Start Conversion
                     </Button>
                   </div>
                 )}
-              </div>
 
-              {validationError && (
-                <Alert variant="destructive" className="mt-4">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{validationError}</AlertDescription>
-                </Alert>
-              )}
+                {currentStep === 2 && (
+                  <div className="text-center">
+                    <RefreshCw className="h-16 w-16 animate-spin text-teal-500 mx-auto mb-4" />
+                    <p className="text-xl font-semibold mb-2 text-teal-800">
+                      Converting your file...
+                    </p>
+                    <p className="text-teal-600 mb-4">
+                      This may take a few moments
+                    </p>
+                    <Progress
+                      value={convertedFiles[0]?.progress || 0}
+                      className="h-2 w-full max-w-md mx-auto"
+                    />
+                  </div>
+                )}
 
-              {selectedFile && fileType && (
-                <div className="mt-6 space-y-6">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Convert to
-                      </label>
-                      <Select
-                        value={outputFormat || undefined}
-                        onValueChange={(value: OutputFormat) =>
-                          setOutputFormat(value)
-                        }>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select output format" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {getAllowedOutputFormats().map((format) => (
-                            <SelectItem key={format} value={format}>
-                              {format.toUpperCase()} Format
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Conversion Quality
-                      </label>
-                      <Select
-                        value={quality}
-                        onValueChange={(value: ConversionQuality) =>
-                          setQuality(value)
-                        }>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="fast">
-                            Quick (Lower Quality)
-                          </SelectItem>
-                          <SelectItem value="balanced">Balanced</SelectItem>
-                          <SelectItem value="high">High Quality</SelectItem>
-                        </SelectContent>
-                      </Select>
+                {currentStep === 3 && (
+                  <div className="text-center">
+                    <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
+                    <p className="text-xl font-semibold mb-2 text-teal-800">
+                      Conversion Complete!
+                    </p>
+                    <p className="text-teal-600 mb-6">
+                      Your file is ready for download
+                    </p>
+                    <div className="flex justify-center space-x-4">
+                      <Button className="bg-teal-500 hover:bg-teal-600 text-white">
+                        Download Converted File
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={resetConversion}
+                        className="border-teal-500 text-teal-500 hover:bg-teal-50">
+                        Convert Another File
+                      </Button>
                     </div>
                   </div>
-                  <Button
-                    onClick={simulateConversion}
-                    disabled={!selectedFile || !outputFormat || isConverting}
-                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700">
-                    {isConverting ? (
-                      <div className="flex items-center gap-2">
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                        Converting...
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <FileDown className="h-4 w-4" />
-                        Convert File
-                      </div>
-                    )}
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                )}
+              </motion.div>
+            </AnimatePresence>
 
-          {/* Conversion History */}
-          <Card className="border-0 shadow-xl bg-white/80 backdrop-blur">
-            <CardHeader>
-              <CardTitle className="text-2xl font-semibold text-gray-800">
-                Conversion History
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {convertedFiles.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <p>No recent conversions</p>
-                  <p className="text-sm mt-2">
-                    Your converted files will appear here
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4 max-h-96 overflow-y-auto">
+            {validationError && (
+              <Alert
+                variant="destructive"
+                className="m-6 bg-red-50 border-red-200 text-red-800">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{validationError}</AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="mt-8 bg-white shadow-lg border-0">
+          <CardContent className="p-6">
+            <h2 className="text-2xl font-semibold mb-4 text-teal-800">
+              Recent Conversions
+            </h2>
+            {convertedFiles.length === 0 ? (
+              <div className="text-center py-8 text-teal-600">
+                <p className="text-xl mb-2">No recent conversions</p>
+                <p className="text-sm">Your converted files will appear here</p>
+              </div>
+            ) : (
+              <ScrollArea className="h-[200px]">
+                <div className="space-y-4">
                   {convertedFiles.map((file) => (
                     <div
                       key={file.id}
-                      className="border rounded-lg p-4 bg-white shadow-sm">
-                      <div className="flex justify-between items-center mb-2">
+                      className="flex items-center justify-between p-4 bg-teal-50 rounded-lg">
+                      <div className="flex items-center space-x-4">
+                        <div className="text-2xl">
+                          {FILE_TYPE_CONFIGS[
+                            file.originalType as keyof typeof FILE_TYPE_CONFIGS
+                          ]?.icon || "📄"}
+                        </div>
                         <div>
-                          <p className="font-medium">{file.originalName}</p>
-                          <p className="text-xs text-gray-500">
-                            Converted to {file.outputFormat.toUpperCase()}
+                          <p className="font-medium text-teal-800">
+                            {file.originalName}
+                          </p>
+                          <p className="text-sm text-teal-600">
+                            Converted to {file.outputFormat.toUpperCase()} •{" "}
+                            {file.size}
                           </p>
                         </div>
-                        {file.status === "completed" ? (
-                          <CheckCircle2 className="text-green-500 h-5 w-5" />
-                        ) : file.status === "failed" ? (
-                          <XCircle className="text-red-500 h-5 w-5" />
-                        ) : (
-                          <RefreshCw className="text-blue-500 h-5 w-5 animate-spin" />
-                        )}
                       </div>
-                      {file.status === "converting" && (
-                        <Progress value={file.progress} className="h-2 mt-2" />
+                      {file.status === "completed" ? (
+                        <CheckCircle2 className="text-green-500 h-6 w-6" />
+                      ) : file.status === "failed" ? (
+                        <XCircle className="text-red-500 h-6 w-6" />
+                      ) : (
+                        <RefreshCw className="text-teal-500 h-6 w-6 animate-spin" />
                       )}
                     </div>
                   ))}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+              </ScrollArea>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
-};
-
-export default ReformatConverter;
+}
