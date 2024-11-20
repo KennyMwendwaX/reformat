@@ -1,26 +1,18 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   FileDown,
   Upload,
   RefreshCw,
   Sparkles,
   CheckCircle2,
-  AlertCircle,
-  Zap,
-  Clock,
   Settings,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import { Progress } from "@/components/ui/progress";
 import { toast, Toaster } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -30,6 +22,7 @@ import { FILE_TYPE_CONFIGS } from "@/lib/config";
 import RecentConversions from "@/components/recent-conversions";
 import { formatFileSize, getFileTypeFromExtension } from "@/lib/file-utils";
 import UploadArea from "@/components/upload-area";
+import ConversionConfig from "@/components/conversion-config";
 
 export default function ReformatConverter() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -40,7 +33,6 @@ export default function ReformatConverter() {
   const [, setIsConverting] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const detectFileType = async (file: File) => {
     setValidationError(null);
@@ -211,98 +203,15 @@ export default function ReformatConverter() {
                 )}
 
                 {currentStep === 1 && selectedFile && fileType && (
-                  <div className="space-y-6">
-                    <div className="flex items-center space-x-4">
-                      <div className="text-4xl">
-                        {FILE_TYPE_CONFIGS[
-                          fileType as keyof typeof FILE_TYPE_CONFIGS
-                        ]?.icon || "📄"}
-                      </div>
-                      <div>
-                        <p className="text-xl font-semibold text-teal-800">
-                          {selectedFile.name}
-                        </p>
-                        <p className="text-sm text-teal-600">
-                          {formatFileSize(selectedFile.size)} •{" "}
-                          {
-                            FILE_TYPE_CONFIGS[
-                              fileType as keyof typeof FILE_TYPE_CONFIGS
-                            ]?.description
-                          }
-                        </p>
-                      </div>
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-teal-700 mb-2">
-                          Convert to
-                        </label>
-                        <Select
-                          value={outputFormat || undefined}
-                          onValueChange={(value: OutputFormat) =>
-                            setOutputFormat(value)
-                          }>
-                          <SelectTrigger className="w-full bg-white border-teal-200 text-teal-800">
-                            <SelectValue placeholder="Select output format" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-white border-teal-200">
-                            {FILE_TYPE_CONFIGS[
-                              fileType as keyof typeof FILE_TYPE_CONFIGS
-                            ]?.allowedOutputs.map((format) => (
-                              <SelectItem
-                                key={format}
-                                value={format}
-                                className="text-teal-800">
-                                {format.toUpperCase()} Format
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-teal-700 mb-2">
-                          Conversion Quality
-                        </label>
-                        <Select
-                          value={quality}
-                          onValueChange={(value: ConversionQuality) =>
-                            setQuality(value)
-                          }>
-                          <SelectTrigger className="w-full bg-white border-teal-200 text-teal-800">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-white border-teal-200">
-                            <SelectItem value="fast" className="text-teal-800">
-                              <div className="flex items-center">
-                                <Zap className="mr-2 h-4 w-4 text-yellow-500" />
-                                Quick (Lower Quality)
-                              </div>
-                            </SelectItem>
-                            <SelectItem
-                              value="balanced"
-                              className="text-teal-800">
-                              <div className="flex items-center">
-                                <Settings className="mr-2 h-4 w-4 text-teal-500" />
-                                Balanced
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="high" className="text-teal-800">
-                              <div className="flex items-center">
-                                <Clock className="mr-2 h-4 w-4 text-blue-500" />
-                                High Quality
-                              </div>
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <Button
-                      onClick={simulateConversion}
-                      disabled={!outputFormat}
-                      className="w-full py-6 text-lg bg-teal-500 hover:bg-teal-600 text-white transition-colors duration-300">
-                      Start Conversion
-                    </Button>
-                  </div>
+                  <ConversionConfig
+                    selectedFile={selectedFile}
+                    fileType={fileType}
+                    outputFormat={outputFormat}
+                    quality={quality}
+                    setOutputFormat={setOutputFormat}
+                    setQuality={setQuality}
+                    onConvert={simulateConversion}
+                  />
                 )}
 
                 {currentStep === 2 && (
