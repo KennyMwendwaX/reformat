@@ -240,7 +240,7 @@ export default function ReformatConverter() {
     <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-mint-100 text-teal-900 p-6 md:p-8">
       <Toaster richColors />
       <div className="max-w-4xl mx-auto">
-        <header className="text-center mb-12">
+        <header className="text-center mb-10">
           <div className="inline-flex items-center justify-center p-3 bg-teal-500 rounded-full mb-6">
             <Sparkles className="h-10 w-10 text-white" />
           </div>
@@ -250,7 +250,7 @@ export default function ReformatConverter() {
           </p>
         </header>
 
-        <Card className="bg-white shadow-xl border-0">
+        <Card className="shadow-0">
           <CardContent className="p-0">
             <div className="flex items-center justify-between p-6 border-b border-teal-100">
               {steps.map((step, index) => (
@@ -409,7 +409,7 @@ export default function ReformatConverter() {
                     </p>
                     <Progress
                       value={convertedFiles[0]?.progress || 0}
-                      className="h-2 w-full max-w-md mx-auto"
+                      className="h-2 w-full max-w-md mx-auto [&>*]:bg-teal-500"
                     />
                   </div>
                 )}
@@ -430,7 +430,7 @@ export default function ReformatConverter() {
                       <Button
                         variant="outline"
                         onClick={resetConversion}
-                        className="border-teal-500 text-teal-500 hover:bg-teal-50">
+                        className="hover:text-teal-500">
                         Convert Another File
                       </Button>
                     </div>
@@ -451,7 +451,7 @@ export default function ReformatConverter() {
           </CardContent>
         </Card>
 
-        <Card className="mt-8 bg-white shadow-lg border-0">
+        <Card className="mt-8">
           <CardContent className="p-6">
             <h2 className="text-2xl font-semibold mb-4 text-teal-800">
               Recent Conversions
