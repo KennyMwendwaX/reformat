@@ -7,7 +7,6 @@ import {
   RefreshCw,
   Sparkles,
   CheckCircle2,
-  XCircle,
   AlertCircle,
   Zap,
   Clock,
@@ -25,64 +24,10 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { toast, Toaster } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { motion, AnimatePresence } from "motion/react";
-
-type FileStatus = "idle" | "uploading" | "converting" | "completed" | "failed";
-type OutputFormat = "pdf" | "docx" | "jpg" | "png" | "svg" | "gif";
-type ConversionQuality = "fast" | "balanced" | "high";
-
-interface ConvertedFile {
-  id: string;
-  originalName: string;
-  originalType: string;
-  outputFormat: OutputFormat;
-  status: FileStatus;
-  progress: number;
-  size: string;
-  convertedAt: Date;
-}
-
-const FILE_TYPE_CONFIGS: Record<
-  string,
-  { icon: string; allowedOutputs: OutputFormat[]; description: string }
-> = {
-  "image/jpeg": {
-    icon: "🖼️",
-    allowedOutputs: ["pdf", "png", "jpg", "gif"],
-    description: "JPEG Image",
-  },
-  "image/png": {
-    icon: "🖼️",
-    allowedOutputs: ["pdf", "jpg", "gif"],
-    description: "PNG Image",
-  },
-  "image/gif": {
-    icon: "🎭",
-    allowedOutputs: ["jpg", "png", "pdf"],
-    description: "GIF Animation",
-  },
-  "image/svg+xml": {
-    icon: "📐",
-    allowedOutputs: ["png", "jpg", "pdf"],
-    description: "SVG Vector",
-  },
-  "application/pdf": {
-    icon: "📄",
-    allowedOutputs: ["docx", "jpg", "png"],
-    description: "PDF Document",
-  },
-  "application/msword": {
-    icon: "📝",
-    allowedOutputs: ["pdf", "docx"],
-    description: "Word Document",
-  },
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
-    icon: "📝",
-    allowedOutputs: ["pdf"],
-    description: "Word Document",
-  },
-};
+import { ConversionQuality, ConvertedFile, OutputFormat } from "@/lib/types";
+import { FILE_TYPE_CONFIGS } from "@/lib/config";
+import RecentConversions from "@/components/recent-conversions";
 
 export default function ReformatConverter() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -450,54 +395,7 @@ export default function ReformatConverter() {
             )}
           </CardContent>
         </Card>
-
-        <Card className="mt-8">
-          <CardContent className="p-6">
-            <h2 className="text-2xl font-semibold mb-4 text-teal-800">
-              Recent Conversions
-            </h2>
-            {convertedFiles.length === 0 ? (
-              <div className="text-center py-8 text-teal-600">
-                <p className="text-xl mb-2">No recent conversions</p>
-                <p className="text-sm">Your converted files will appear here</p>
-              </div>
-            ) : (
-              <ScrollArea className="h-[200px]">
-                <div className="space-y-4">
-                  {convertedFiles.map((file) => (
-                    <div
-                      key={file.id}
-                      className="flex items-center justify-between p-4 bg-teal-50 rounded-lg">
-                      <div className="flex items-center space-x-4">
-                        <div className="text-2xl">
-                          {FILE_TYPE_CONFIGS[
-                            file.originalType as keyof typeof FILE_TYPE_CONFIGS
-                          ]?.icon || "📄"}
-                        </div>
-                        <div>
-                          <p className="font-medium text-teal-800">
-                            {file.originalName}
-                          </p>
-                          <p className="text-sm text-teal-600">
-                            Converted to {file.outputFormat.toUpperCase()} •{" "}
-                            {file.size}
-                          </p>
-                        </div>
-                      </div>
-                      {file.status === "completed" ? (
-                        <CheckCircle2 className="text-green-500 h-6 w-6" />
-                      ) : file.status === "failed" ? (
-                        <XCircle className="text-red-500 h-6 w-6" />
-                      ) : (
-                        <RefreshCw className="text-teal-500 h-6 w-6 animate-spin" />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            )}
-          </CardContent>
-        </Card>
+        <RecentConversions convertedFiles={convertedFiles} />
       </div>
     </div>
   );
