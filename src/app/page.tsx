@@ -28,6 +28,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { ConversionQuality, ConvertedFile, OutputFormat } from "@/lib/types";
 import { FILE_TYPE_CONFIGS } from "@/lib/config";
 import RecentConversions from "@/components/recent-conversions";
+import { formatFileSize, getFileTypeFromExtension } from "@/lib/file-utils";
 
 export default function ReformatConverter() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -61,21 +62,6 @@ export default function ReformatConverter() {
     return true;
   };
 
-  const getFileTypeFromExtension = (fileName: string): string => {
-    const extension = fileName.split(".").pop()?.toLowerCase();
-    const extensionMimeMap: { [key: string]: string } = {
-      pdf: "application/pdf",
-      doc: "application/msword",
-      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      jpg: "image/jpeg",
-      jpeg: "image/jpeg",
-      png: "image/png",
-      gif: "image/gif",
-      svg: "image/svg+xml",
-    };
-    return extension ? extensionMimeMap[extension] || "" : "";
-  };
-
   const handleFileSelect = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -103,13 +89,6 @@ export default function ReformatConverter() {
       setSelectedFile(null);
       toast.error(validationError || "Invalid file");
     }
-  };
-
-  const formatFileSize = (bytes: number): string => {
-    const units = ["Bytes", "KB", "MB", "GB"];
-    if (bytes === 0) return "0 Bytes";
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return `${parseFloat((bytes / Math.pow(1024, i)).toFixed(2))} ${units[i]}`;
   };
 
   const simulateConversion = async () => {
