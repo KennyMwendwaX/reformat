@@ -29,6 +29,7 @@ import { ConversionQuality, ConvertedFile, OutputFormat } from "@/lib/types";
 import { FILE_TYPE_CONFIGS } from "@/lib/config";
 import RecentConversions from "@/components/recent-conversions";
 import { formatFileSize, getFileTypeFromExtension } from "@/lib/file-utils";
+import UploadArea from "@/components/upload-area";
 
 export default function ReformatConverter() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -203,28 +204,10 @@ export default function ReformatConverter() {
                 transition={{ duration: 0.3 }}
                 className="p-6">
                 {currentStep === 0 && (
-                  <div
-                    onDrop={handleFileDrop}
-                    onDragOver={(e) => e.preventDefault()}
-                    className="border-2 border-dashed border-teal-200 rounded-xl p-10 text-center transition-all duration-300 hover:border-teal-400 hover:bg-teal-50">
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      className="hidden"
-                      onChange={handleFileSelect}
-                    />
-                    <div
-                      onClick={() => fileInputRef.current?.click()}
-                      className="cursor-pointer">
-                      <Upload className="mx-auto h-16 w-16 text-teal-400 mb-4" />
-                      <p className="text-xl font-medium text-teal-800 mb-2">
-                        Drag and drop or click to upload
-                      </p>
-                      <p className="text-sm text-teal-600">
-                        Supports PDF, Word, JPG, PNG, GIF, and SVG formats
-                      </p>
-                    </div>
-                  </div>
+                  <UploadArea
+                    onFileSelect={handleFileSelect}
+                    onFileDrop={handleFileDrop}
+                  />
                 )}
 
                 {currentStep === 1 && selectedFile && fileType && (
