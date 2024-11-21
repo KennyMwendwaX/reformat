@@ -16,9 +16,9 @@ type PDFConverter interface {
 }
 
 // ImageConverter handles conversion of image files to PDF
-type ImageToPDFConverter struct{}
+type FileImage struct{}
 
-func (c *ImageToPDFConverter) ConvertToPDF(inputFile string) error {
+func (c *FileImage) ConvertToPDF(inputFile string) error {
 	pdf := fpdf.New("P", "mm", "A4", "")
 	pdf.AddPage()
 
@@ -41,10 +41,10 @@ func (c *ImageToPDFConverter) ConvertToPDF(inputFile string) error {
 	return pdf.OutputFileAndClose(outputFile)
 }
 
-// WordConverter handles conversion of Word documents to PDF
-type WordConverter struct{}
+// DOCX handles conversion of Word documents to PDF
+type DOCX struct{}
 
-func (c *WordConverter) ConvertToPDF(inputFile string) error {
+func (c *DOCX) ConvertToPDF(inputFile string) error {
 	// Open DOCX file
 	doc, err := document.Open(inputFile)
 	if err != nil {
@@ -83,9 +83,9 @@ func GetPDFConverter(inputFile string) (PDFConverter, error) {
 	ext := strings.ToLower(filepath.Ext(inputFile))
 	switch ext {
 	case ".jpg", ".jpeg", ".png", ".gif", ".bmp":
-		return &ImageToPDFConverter{}, nil
+		return &FileImage{}, nil
 	case ".doc", ".docx":
-		return &WordConverter{}, nil
+		return &DOCX{}, nil
 	default:
 		return nil, fmt.Errorf("unsupported file type: %s", ext)
 	}

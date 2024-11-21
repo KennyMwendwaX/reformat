@@ -12,15 +12,15 @@ import (
 	"github.com/unidoc/unioffice/measurement"
 )
 
-// IDocxConverter interface for DOCX conversion
-type IDocxConverter interface {
+// DocxConverter interface for DOCX conversion
+type DocxConverter interface {
 	ConvertToDocx(inputFile string) error
 }
 
-// ImageToDOCXConverter handles image to DOCX conversion
-type ImageToDOCXConverter struct{}
+// ImageFile handles image to DOCX conversion
+type ImageFile struct{}
 
-func (c *ImageToDOCXConverter) ConvertToDocx(inputFile string) error {
+func (c *ImageFile) ConvertToDocx(inputFile string) error {
 	doc := document.New()
 	para := doc.AddParagraph()
 
@@ -51,10 +51,10 @@ func (c *ImageToDOCXConverter) ConvertToDocx(inputFile string) error {
 	return doc.SaveToFile(outputFile)
 }
 
-// DOCXConverter handles PDF to DOCX conversion
-type DOCXConverter struct{}
+// PDF handles PDF to DOCX conversion
+type PDF struct{}
 
-func (c *DOCXConverter) ConvertToDocx(inputFile string) error {
+func (c *PDF) ConvertToDocx(inputFile string) error {
 	// Extract text from PDF
 	text, err := extractTextFromPDF(inputFile)
 	if err != nil {
@@ -89,13 +89,13 @@ func extractTextFromPDF(inputFile string) (string, error) {
 }
 
 // GetDOCXConverter returns appropriate converter based on file type
-func GetDOCXConverter(inputFile string) (IDocxConverter, error) {
+func GetDOCXConverter(inputFile string) (DocxConverter, error) {
 	ext := strings.ToLower(filepath.Ext(inputFile))
 	switch ext {
 	case ".jpg", ".jpeg", ".png", ".gif", ".bmp":
-		return &ImageToDOCXConverter{}, nil
+		return &ImageFile{}, nil
 	case ".pdf":
-		return &DOCXConverter{}, nil
+		return &PDF{}, nil
 	case ".docx":
 		return nil, fmt.Errorf("file is already in DOCX format: %s", inputFile)
 	default:

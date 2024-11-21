@@ -13,16 +13,16 @@ import (
 	"golang.org/x/image/bmp"
 )
 
-// IImageConverter interface for image conversion
-type IImageConverter interface {
+// ImageConverter interface for image conversion
+type ImageConverter interface {
 	Convert(inputFile, outputFile string) error
 }
 
-// ImageConverter handles image type conversion
-type ImageConverter struct{}
+// Image handles image type conversion
+type Image struct{}
 
 // Convert converts an image file to the specified output format
-func (c *ImageConverter) Convert(inputFile, outputFormat string) error {
+func (c *Image) Convert(inputFile, outputFormat string) error {
 	// Open the input file
 	input, err := os.Open(inputFile)
 	if err != nil {
@@ -105,6 +105,6 @@ func ConvertImage(inputFile, outputFormat string) error {
 	}
 
 	// Create converter and perform conversion
-	converter := &ImageConverter{}
+	converter := &Image{}
 	return converter.Convert(inputFile, outputFormat)
 }
