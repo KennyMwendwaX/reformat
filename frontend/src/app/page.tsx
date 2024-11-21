@@ -18,9 +18,8 @@ import { toast, Toaster } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { motion, AnimatePresence } from "motion/react";
 import { ConversionQuality, ConvertedFile, OutputFormat } from "@/lib/types";
-import { FILE_TYPE_CONFIGS } from "@/lib/config";
 import RecentConversions from "@/components/recent-conversions";
-import { formatFileSize, getFileTypeFromExtension } from "@/lib/file-utils";
+import { formatFileSize } from "@/lib/file-utils";
 import UploadArea from "@/components/upload-area";
 import ConversionConfig from "@/components/conversion-config";
 
@@ -33,56 +32,6 @@ export default function ReformatConverter() {
   const [, setIsConverting] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
-
-  const detectFileType = async (file: File) => {
-    setValidationError(null);
-    setFileType(null);
-    setOutputFormat(null);
-
-    const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
-    if (file.size > MAX_FILE_SIZE) {
-      setValidationError("File size exceeds 100MB limit");
-      return false;
-    }
-
-    const type = file.type || getFileTypeFromExtension(file.name);
-    if (!FILE_TYPE_CONFIGS[type]) {
-      setValidationError("Unsupported file type");
-      return false;
-    }
-
-    setFileType(type);
-    return true;
-  };
-
-  const handleFileSelect = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      await processSelectedFile(file);
-    }
-  };
-
-  const handleFileDrop = async (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    const file = event.dataTransfer.files[0];
-    if (file) {
-      await processSelectedFile(file);
-    }
-  };
-
-  const processSelectedFile = async (file: File) => {
-    const isValid = await detectFileType(file);
-    if (isValid) {
-      setSelectedFile(file);
-      toast.success("File type detected successfully!");
-      setCurrentStep(1);
-    } else {
-      setSelectedFile(null);
-      toast.error(validationError || "Invalid file");
-    }
-  };
 
   const simulateConversion = async () => {
     if (!selectedFile || !outputFormat || !fileType) {
@@ -211,8 +160,12 @@ export default function ReformatConverter() {
                 className="p-6">
                 {currentStep === 0 && (
                   <UploadArea
-                    onFileSelect={handleFileSelect}
-                    onFileDrop={handleFileDrop}
+                    validationError={validationError}
+                    setFileType={setFileType}
+                    setSelectedFile={setSelectedFile}
+                    setCurrentStep={setCurrentStep}
+                    setOutputFormat={setOutputFormat}
+                    setValidationError={setValidationError}
                   />
                 )}
 
