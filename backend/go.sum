@@ -1,0 +1,6 @@
+github.com/go-pdf/fpdf v0.9.0 h1:PPvSaUuo1iMi9KkaAn90NuKi+P4gwMedWPHhj8YlJQw=
+github.com/go-pdf/fpdf v0.9.0/go.mod h1:oO8N111TkmKb9D7VvWGLvLJlaZUQVPM+6V42pp3iV4Y=
+github.com/richardlehane/msoleps v1.0.3 h1:aznSZzrwYRl3rLKRT3gUk9am7T/mLNSnJINvN0AQoVM=
+github.com/richardlehane/msoleps v1.0.3/go.mod h1:BWev5JBpU9Ko2WAgmZEuiz4/u3ZYTKbjLycmwiWUfWg=
+github.com/unidoc/unioffice v1.37.0 h1:dQLm0UEhIYiRPkxWCGsDYZQAcSXv4oMIUknTPNKizvA=
+github.com/unidoc/unioffice v1.37.0/go.mod h1:VL/S9i/xd2zYqZCUzO6CFPr3kM4iKj/tLcEcthAilgU=
