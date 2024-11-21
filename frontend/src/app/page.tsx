@@ -11,7 +11,7 @@ import {
   Boxes,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 import { Progress } from "@/components/ui/progress";
 import { toast, Toaster } from "sonner";
@@ -131,7 +131,7 @@ export default function ReformatConverter() {
         </header>
 
         <Card className="shadow-0">
-          <CardContent className="p-0">
+          <CardHeader className="px-4">
             <div className="flex items-center justify-between p-6 border-b border-teal-100">
               {steps.map((step, index) => (
                 <div key={step.title} className="flex flex-col items-center">
@@ -149,6 +149,17 @@ export default function ReformatConverter() {
                 </div>
               ))}
             </div>
+          </CardHeader>
+          <CardContent>
+            {validationError && (
+              <Alert
+                variant="destructive"
+                className="mt-2 px-4 bg-red-50 border-red-200 text-red-800">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{validationError}</AlertDescription>
+              </Alert>
+            )}
 
             <AnimatePresence mode="wait">
               <motion.div
@@ -199,7 +210,7 @@ export default function ReformatConverter() {
 
                 {currentStep === 3 && (
                   <div className="text-center">
-                    <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
+                    <CheckCircle2 className="h-16 w-16 text-teal-500 mx-auto mb-4" />
                     <p className="text-xl font-semibold mb-2 text-teal-800">
                       Conversion Complete!
                     </p>
@@ -221,16 +232,6 @@ export default function ReformatConverter() {
                 )}
               </motion.div>
             </AnimatePresence>
-
-            {validationError && (
-              <Alert
-                variant="destructive"
-                className="m-6 bg-red-50 border-red-200 text-red-800">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{validationError}</AlertDescription>
-              </Alert>
-            )}
           </CardContent>
         </Card>
         <RecentConversions convertedFiles={convertedFiles} />

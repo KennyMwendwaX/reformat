@@ -44,7 +44,7 @@ export default function RecentConversions({ convertedFiles }: Props) {
                     </div>
                   </div>
                   {file.status === "completed" ? (
-                    <CheckCircle2 className="text-green-500 h-6 w-6" />
+                    <CheckCircle2 className="text-teal-500 h-6 w-6" />
                   ) : file.status === "failed" ? (
                     <XCircle className="text-red-500 h-6 w-6" />
                   ) : (
