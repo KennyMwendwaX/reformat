@@ -7,6 +7,7 @@ import (
 	"image/jpeg"
 	"image/png"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"golang.org/x/image/bmp"
@@ -36,22 +37,15 @@ func (c *ImageFormatConverter) Convert(inputFile string, outputFormat string, op
 		opt(&c.Options)
 	}
 
-	// Validate input
+	// Validate input format
 	if !ValidateFormat(outputFormat) {
 		return fmt.Errorf("unsupported output format: %s", outputFormat)
 	}
 
-	// Open input file
-	input, err := os.Open(inputFile)
+	// Load image
+	img, err := c.loadImage(inputFile)
 	if err != nil {
-		return fmt.Errorf("error opening input file: %w", err)
-	}
-	defer input.Close()
-
-	// Decode image
-	img, format, err := image.Decode(input)
-	if err != nil {
-		return fmt.Errorf("error decoding image format %s: %w", format, err)
+		return err
 	}
 
 	// Generate output filename
@@ -67,8 +61,30 @@ func (c *ImageFormatConverter) Convert(inputFile string, outputFormat string, op
 	}
 	defer output.Close()
 
-	// Encode image in new format
-	switch strings.ToLower(outputFormat) {
+	// Encode image based on format
+	return c.encodeImage(img, output, outputFormat)
+}
+
+// loadImage loads and decodes the input image
+func (c *ImageFormatConverter) loadImage(inputFile string) (image.Image, error) {
+	input, err := os.Open(inputFile)
+	if err != nil {
+		return nil, fmt.Errorf("error opening input file: %w", err)
+	}
+	defer input.Close()
+
+	img, _, err := image.Decode(input)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding image: %w", err)
+	}
+
+	return img, nil
+}
+
+// encodeImage encodes the image in the specified format
+func (c *ImageFormatConverter) encodeImage(img image.Image, output *os.File, format string) error {
+	var err error
+	switch strings.ToLower(format) {
 	case "jpg", "jpeg":
 		err = jpeg.Encode(output, img, &jpeg.Options{
 			Quality: int(c.Options.JPEGQuality),
@@ -82,13 +98,12 @@ func (c *ImageFormatConverter) Convert(inputFile string, outputFormat string, op
 	case "bmp":
 		err = bmp.Encode(output, img)
 	default:
-		return fmt.Errorf("unsupported output format: %s", outputFormat)
+		return fmt.Errorf("unsupported output format: %s", format)
 	}
 
 	if err != nil {
-		return fmt.Errorf("error encoding image to %s: %w", outputFormat, err)
+		return fmt.Errorf("error encoding image to %s: %w", format, err)
 	}
-
 	return nil
 }
 
@@ -156,9 +171,8 @@ func GetFormatInfo(format string) (*Format, error) {
 	return nil, fmt.Errorf("unsupported format: %s", format)
 }
 
-func init() {
-	// Set default values for image-specific options in ConvertOptions
-	defaultOpts := DefaultOptions()
-	defaultOpts.JPEGQuality = 75
-	defaultOpts.GIFNumColors = 256
+// GetFormatFromFilename extracts the format from a filename
+func GetFormatFromFilename(filename string) string {
+	ext := strings.ToLower(filepath.Ext(filename))
+	return strings.TrimPrefix(ext, ".")
 }
