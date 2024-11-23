@@ -2,7 +2,6 @@ package converter
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -12,15 +11,85 @@ import (
 	"github.com/unidoc/unioffice/measurement"
 )
 
-// DocxConverter interface for DOCX conversion
-type DocxConverter interface {
-	ConvertToDocx(inputFile string) error
+// DocxConverterInterface interface for converting files to DOCX
+type DocxConverterInterface interface {
+	ConvertToDocx(inputFile string, options ...ConvertOption) error
 }
 
-// ImageFile handles image to DOCX conversion
-type ImageFile struct{}
+// DocxFileConverter handles base DOCX conversion functionality
+type DocxFileConverter struct {
+	BaseConverter
+}
 
-func (c *ImageFile) ConvertToDocx(inputFile string) error {
+func NewDocxFileConverter() *DocxFileConverter {
+	return &DocxFileConverter{
+		BaseConverter: BaseConverter{Options: DefaultOptions()},
+	}
+}
+
+// PDFToDocxConverter handles conversion of PDF files to DOCX
+type PDFToDocxConverter struct {
+	DocxFileConverter
+}
+
+func NewPDFToDocxConverter() *PDFToDocxConverter {
+	return &PDFToDocxConverter{
+		DocxFileConverter: *NewDocxFileConverter(),
+	}
+}
+
+// ImageToDocxConverter handles conversion of image files to DOCX
+type ImageToDocxConverter struct {
+	DocxFileConverter
+}
+
+func NewImageToDocxConverter() *ImageToDocxConverter {
+	return &ImageToDocxConverter{
+		DocxFileConverter: *NewDocxFileConverter(),
+	}
+}
+
+// ConvertToDocx implements basic DOCX conversion - this should be overridden by specific converters
+func (c *DocxFileConverter) ConvertToDocx(inputFile string, options ...ConvertOption) error {
+	return fmt.Errorf("base converter does not implement specific conversion logic")
+}
+
+// ConvertToDocx converts a PDF file to DOCX format
+func (c *PDFToDocxConverter) ConvertToDocx(inputFile string, options ...ConvertOption) error {
+	// Apply options
+	for _, opt := range options {
+		opt(&c.Options)
+	}
+
+	text, err := extractTextFromPDF(inputFile)
+	if err != nil {
+		return fmt.Errorf("error extracting text: %w", err)
+	}
+
+	doc := document.New()
+	paragraphs := strings.Split(text, "\n\n")
+	for _, p := range paragraphs {
+		if strings.TrimSpace(p) != "" {
+			para := doc.AddParagraph()
+			run := para.AddRun()
+			run.AddText(strings.TrimSpace(p))
+		}
+	}
+
+	outputFile := c.Options.OutputPath
+	if outputFile == "" {
+		outputFile = GetOutputFilename(inputFile, ".docx")
+	}
+	return doc.SaveToFile(outputFile)
+}
+
+// ConvertToDocx converts an image file to DOCX format
+func (c *ImageToDocxConverter) ConvertToDocx(inputFile string, options ...ConvertOption) error {
+	// Apply options
+	for _, opt := range options {
+		opt(&c.Options)
+	}
+
 	doc := document.New()
 	para := doc.AddParagraph()
 
@@ -39,42 +108,22 @@ func (c *ImageFile) ConvertToDocx(inputFile string) error {
 		return fmt.Errorf("error adding inline drawing: %w", err)
 	}
 
-	// Set reasonable default size while maintaining aspect ratio
-	widthInches := float64(6.0)
-	width := measurement.Distance(widthInches * measurement.Inch)
+	width := measurement.Distance(c.Options.DocxImageWidth * measurement.Inch)
 	aspectRatio := float64(img.Size.Y) / float64(img.Size.X)
-	height := measurement.Distance(widthInches * aspectRatio * measurement.Inch)
+	height := measurement.Distance(c.Options.DocxImageWidth * aspectRatio * measurement.Inch)
+
+	// Ensure height doesn't exceed maximum
+	if height > measurement.Distance(c.Options.DocxImageMaxHeight*measurement.Inch) {
+		height = measurement.Distance(c.Options.DocxImageMaxHeight * measurement.Inch)
+		width = height / measurement.Distance(aspectRatio)
+	}
 
 	inl.SetSize(width, height)
 
-	outputFile := fmt.Sprintf("%s.docx", inputFile[:len(inputFile)-len(filepath.Ext(inputFile))])
-	return doc.SaveToFile(outputFile)
-}
-
-// PDF handles PDF to DOCX conversion
-type PDF struct{}
-
-func (c *PDF) ConvertToDocx(inputFile string) error {
-	// Extract text from PDF
-	text, err := extractTextFromPDF(inputFile)
-	if err != nil {
-		return fmt.Errorf("error extracting text: %w", err)
+	outputFile := c.Options.OutputPath
+	if outputFile == "" {
+		outputFile = GetOutputFilename(inputFile, ".docx")
 	}
-
-	// Create new document
-	doc := document.New()
-
-	// Split text into paragraphs and add to document
-	paragraphs := strings.Split(text, "\n\n")
-	for _, p := range paragraphs {
-		if strings.TrimSpace(p) != "" {
-			para := doc.AddParagraph()
-			run := para.AddRun()
-			run.AddText(strings.TrimSpace(p))
-		}
-	}
-
-	outputFile := fmt.Sprintf("%s.docx", inputFile[:len(inputFile)-len(filepath.Ext(inputFile))])
 	return doc.SaveToFile(outputFile)
 }
 
@@ -88,34 +137,17 @@ func extractTextFromPDF(inputFile string) (string, error) {
 	return string(output), nil
 }
 
-// GetDOCXConverter returns appropriate converter based on file type
-func GetDOCXConverter(inputFile string) (DocxConverter, error) {
+// GetDocxConverter returns appropriate converter based on file type
+func GetDocxConverter(inputFile string) (DocxConverterInterface, error) {
 	ext := strings.ToLower(filepath.Ext(inputFile))
 	switch ext {
 	case ".jpg", ".jpeg", ".png", ".gif", ".bmp":
-		return &ImageFile{}, nil
+		return NewImageToDocxConverter(), nil
 	case ".pdf":
-		return &PDF{}, nil
+		return NewPDFToDocxConverter(), nil
 	case ".docx":
 		return nil, fmt.Errorf("file is already in DOCX format: %s", inputFile)
 	default:
 		return nil, fmt.Errorf("unsupported file type: %s", ext)
 	}
-}
-
-// ConvertToDocx is the main conversion function
-func ConvertToDocx(inputFile string) error {
-	// Check if file exists
-	if _, err := os.Stat(inputFile); os.IsNotExist(err) {
-		return fmt.Errorf("file does not exist: %s", inputFile)
-	}
-
-	// Get appropriate converter
-	converter, err := GetDOCXConverter(inputFile)
-	if err != nil {
-		return err
-	}
-
-	// Perform conversion
-	return converter.ConvertToDocx(inputFile)
 }
