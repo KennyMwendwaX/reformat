@@ -1,33 +1,26 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
+	"time"
+
+	"github.com/KennyMwendwaX/reformat/internal/handlers"
 )
 
 func main() {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Set JSON content type
-		w.Header().Set("Content-Type", "application/json")
+	// Conversion endpoint
+	http.HandleFunc("/convert", handlers.Convert)
 
-		// Create a response object
-		response := map[string]string{
-			"message": "Server is running",
-			"status":  "ok",
-		}
+	// Configure server with reasonable timeouts
+	server := &http.Server{
+		Addr:         ":8080",
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 30 * time.Second, // Longer timeout for file conversions
+	}
 
-		// Encode and send JSON
-		if err := json.NewEncoder(w).Encode(response); err != nil {
-			// Optional: log the error
-			log.Printf("Error encoding response: %v", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-	})
-
-	log.Println("Starting server on :8080")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	log.Printf("Starting server on %s", server.Addr)
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
 }
