@@ -159,8 +159,6 @@ func (c *DocxConverter) ConvertToPDF(inputFile string, options ...ConvertOption)
 	return pdf.OutputFileAndClose(outputFile)
 }
 
-// getOutputFilename generates the output PDF filename from the input filename
-
 // GetPDFConverter returns the appropriate converter based on file extension
 func GetPDFConverter(inputFile string) (PDFConverter, error) {
 	ext := strings.ToLower(filepath.Ext(inputFile))
