@@ -4,7 +4,7 @@ export type FileStatus =
   | "converting"
   | "completed"
   | "failed";
-export type OutputFormat = "pdf" | "docx" | "jpg" | "png" | "svg" | "gif";
+export type OutputFormat = "pdf" | "docx" | "jpg" | "jpeg" | "png" | "gif";
 export type ConversionQuality = "fast" | "balanced" | "high";
 
 export interface ConvertedFile {
