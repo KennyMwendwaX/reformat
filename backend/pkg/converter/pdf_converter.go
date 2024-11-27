@@ -44,8 +44,6 @@ func NewImageConverter() *ImageConverter {
 	}
 }
 
-type ProgressCallback func(progress float64)
-
 type ConversionProgress struct {
 	totalSteps  int64
 	currentStep int64
@@ -78,13 +76,13 @@ func (c *ImageConverter) ConvertToPDF(inputFile string, options ...ConvertOption
 		return fmt.Errorf("failed to open image: %w", err)
 	}
 	defer f.Close()
-	progress.Step() // 25%
+	progress.Step()
 
 	img, _, err := image.Decode(f)
 	if err != nil {
 		return fmt.Errorf("failed to decode image: %w", err)
 	}
-	progress.Step() // 50%
+	progress.Step()
 
 	bounds := img.Bounds()
 	imgWidth := float64(bounds.Dx())
@@ -125,16 +123,15 @@ func NewDocxConverter() *DocxConverter {
 
 // ConvertToPDF implements the PDFConverter interface for DOCX files
 func (c *DocxConverter) ConvertToPDF(inputFile string, options ...ConvertOption) error {
-	// Apply options
-	for _, opt := range options {
-		opt(&c.Options)
-	}
+
+	progress := NewConversionProgress(4, c.progressCallback)
 
 	doc, err := document.Open(inputFile)
 	if err != nil {
 		return fmt.Errorf("failed to open document: %w", err)
 	}
 	defer doc.Close()
+	progress.Step() // 25%
 
 	pdf := fpdf.New("P", "mm", "A4", "")
 	pdf.AddPage()
@@ -145,10 +142,7 @@ func (c *DocxConverter) ConvertToPDF(inputFile string, options ...ConvertOption)
 		var text strings.Builder
 
 		for _, run := range para.Runs() {
-			// Get run properties
 			rPr := run.Properties()
-
-			// Handle basic text formatting
 			style := ""
 			if rPr.IsBold() {
 				style += "B"
@@ -156,31 +150,29 @@ func (c *DocxConverter) ConvertToPDF(inputFile string, options ...ConvertOption)
 			if rPr.IsItalic() {
 				style += "I"
 			}
-
-			// Set the font style for this run
 			pdf.SetFont(c.Options.FontName, style, c.Options.FontSize)
-
-			// Add the text
 			text.WriteString(run.Text())
 		}
 
 		if text.Len() > 0 {
-			// Add paragraph spacing
 			if pdf.GetY() > c.Options.MarginTop {
 				pdf.Ln(c.Options.LineHeight * 0.5)
 			}
-
-			// Write paragraph text
 			pdf.MultiCell(190, c.Options.LineHeight, text.String(), "", "", false)
 		}
 	}
+	progress.Step() // 50%
 
 	outputFile := c.Options.OutputPath
 	if outputFile == "" {
 		outputFile = GetOutputFilename(inputFile, ".pdf")
 	}
+	progress.Step() // 75%
 
-	return pdf.OutputFileAndClose(outputFile)
+	err = pdf.OutputFileAndClose(outputFile)
+	progress.Step() // 100%
+
+	return err
 }
 
 // GetPDFConverter returns the appropriate converter based on file extension

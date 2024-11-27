@@ -40,9 +40,12 @@ func DefaultOptions() ConvertOptions {
 // ConvertOption allows for flexible configuration
 type ConvertOption func(*ConvertOptions)
 
+type ProgressCallback func(progress float64)
+
 // BaseConverter holds the common conversion options
 type BaseConverter struct {
-	Options ConvertOptions
+	Options          ConvertOptions
+	progressCallback ProgressCallback
 }
 
 // WithOutputPath sets a custom output path
