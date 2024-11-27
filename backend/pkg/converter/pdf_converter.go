@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 
 	"github.com/go-pdf/fpdf"
 	"github.com/unidoc/unioffice/document"
@@ -43,32 +44,54 @@ func NewImageConverter() *ImageConverter {
 	}
 }
 
+type ProgressCallback func(progress float64)
+
+type ConversionProgress struct {
+	totalSteps  int64
+	currentStep int64
+	onProgress  ProgressCallback
+}
+
+func NewConversionProgress(totalSteps int64, callback ProgressCallback) *ConversionProgress {
+	return &ConversionProgress{
+		totalSteps: totalSteps,
+		onProgress: callback,
+	}
+}
+
+func (p *ConversionProgress) Step() {
+	current := atomic.AddInt64(&p.currentStep, 1)
+	if p.onProgress != nil {
+		progress := (float64(current) / float64(p.totalSteps)) * 100
+		p.onProgress(progress)
+	}
+}
+
 // ConvertToPDF implements the PDFConverter interface for images
 func (c *ImageConverter) ConvertToPDF(inputFile string, options ...ConvertOption) error {
-	// Apply options
-	for _, opt := range options {
-		opt(&c.Options)
-	}
+	progress := NewConversionProgress(4, func(p float64) {
+		fmt.Printf("Conversion progress: %.2f%%\n", p)
+	})
 
-	// Open and decode image to get actual dimensions
 	f, err := os.Open(inputFile)
 	if err != nil {
 		return fmt.Errorf("failed to open image: %w", err)
 	}
 	defer f.Close()
+	progress.Step() // 25%
 
 	img, _, err := image.Decode(f)
 	if err != nil {
 		return fmt.Errorf("failed to decode image: %w", err)
 	}
+	progress.Step() // 50%
 
 	bounds := img.Bounds()
 	imgWidth := float64(bounds.Dx())
 	imgHeight := float64(bounds.Dy())
-
+	// PDF creation and image scaling
 	pdf := fpdf.New("P", "mm", "A4", "")
 	pdf.AddPage()
-
 	// Scale image to fit on page while maintaining aspect ratio
 	width := imgWidth
 	height := imgHeight
@@ -77,15 +100,16 @@ func (c *ImageConverter) ConvertToPDF(inputFile string, options ...ConvertOption
 		width = c.Options.MaxImageWidth
 		height = height * ratio
 	}
+	progress.Step() // 75%
 
 	pdf.Image(inputFile, c.Options.MarginLeft, c.Options.MarginTop, width, height, false, "", 0, "")
 
-	outputFile := c.Options.OutputPath
-	if outputFile == "" {
-		outputFile = GetOutputFilename(inputFile, ".pdf")
-	}
+	// Write PDF
+	outputFile := GetOutputFilename(inputFile, ".pdf")
+	err = pdf.OutputFileAndClose(outputFile)
+	progress.Step() // 100%
 
-	return pdf.OutputFileAndClose(outputFile)
+	return err
 }
 
 // DocxConverter handles conversion of Word documents to PDF

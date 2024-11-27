@@ -1,11 +1,14 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/KennyMwendwaX/reformat/pkg/converter"
 )
@@ -19,32 +22,40 @@ var allowedFormats = map[string]bool{
 	"gif":  true,
 }
 
+// Maximum file size (10MB)
+const maxFileSize = 10 << 20
+
+// Add file size validation
+func validateFileSize(file io.ReadSeeker) error {
+	size, err := file.Seek(0, io.SeekEnd)
+	if err != nil {
+		return fmt.Errorf("error checking file size: %w", err)
+	}
+	_, err = file.Seek(0, io.SeekStart)
+	if err != nil {
+		return fmt.Errorf("error resetting file position: %w", err)
+	}
+	if size > maxFileSize {
+		return fmt.Errorf("file size exceeds maximum allowed size of %d bytes", maxFileSize)
+	}
+	return nil
+}
+
 func isValidFormat(format string) bool {
 	format = strings.ToLower(strings.TrimPrefix(format, "."))
 	return allowedFormats[format]
 }
 
 func Convert(w http.ResponseWriter, r *http.Request) {
-	from := strings.ToLower(r.URL.Query().Get("from"))
-	to := strings.ToLower(r.URL.Query().Get("to"))
+	// Add context with timeout
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+	r = r.WithContext(ctx)
 
-	if from == "" || to == "" {
-		http.Error(w, "Missing 'from' or 'to' query parameters", http.StatusBadRequest)
-		return
-	}
-
-	if !isValidFormat(from) {
-		http.Error(w, fmt.Sprintf("Invalid 'from' format: %s", from), http.StatusBadRequest)
-		return
-	}
-	if !isValidFormat(to) {
-		http.Error(w, fmt.Sprintf("Invalid 'to' format: %s", to), http.StatusBadRequest)
-		return
-	}
-
-	err := r.ParseMultipartForm(10 << 20)
-	if err != nil {
-		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+	// Add content type validation
+	contentType := r.Header.Get("Content-Type")
+	if !strings.HasPrefix(contentType, "multipart/form-data") {
+		http.Error(w, "Content-Type must be multipart/form-data", http.StatusBadRequest)
 		return
 	}
 
@@ -55,28 +66,48 @@ func Convert(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	fileExt := strings.ToLower(filepath.Ext(header.Filename))
-	if fileExt != "" {
-		fileExt = strings.TrimPrefix(fileExt, ".")
-		if fileExt != from {
-			http.Error(w, fmt.Sprintf("File extension '%s' doesn't match 'from' parameter '%s'", fileExt, from), http.StatusBadRequest)
-			return
-		}
+	// Validate file size
+	if err := validateFileSize(file); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	// Save uploaded file temporarily
-	tempFile := filepath.Join(os.TempDir(), header.Filename)
+	// Create temporary directory for conversion
+	tempDir, err := os.MkdirTemp("", "conversion-*")
+	if err != nil {
+		http.Error(w, "Error creating temporary directory", http.StatusInternalServerError)
+		return
+	}
+	defer os.RemoveAll(tempDir)
+
+	tempFile := filepath.Join(tempDir, header.Filename)
 	dst, err := os.Create(tempFile)
 	if err != nil {
 		http.Error(w, "Error saving uploaded file", http.StatusInternalServerError)
 		return
 	}
-	defer func() {
-		dst.Close()
-		os.Remove(tempFile) // Clean up temporary file
-	}()
+	defer dst.Close()
+
+	// Copy with progress monitoring
+	written, err := io.Copy(dst, io.TeeReader(file, &progressWriter{total: header.Size}))
+	if err != nil || written != header.Size {
+		http.Error(w, "Error copying file", http.StatusInternalServerError)
+		return
+	}
 
 	fmt.Printf("Uploaded file: %s (%d bytes)\n", header.Filename, header.Size)
+
+	to := strings.ToLower(r.URL.Query().Get("to"))
+
+	if to == "" {
+		http.Error(w, "Missing 'to' query parameter", http.StatusBadRequest)
+		return
+	}
+
+	if !isValidFormat(to) {
+		http.Error(w, fmt.Sprintf("Invalid 'to' format: %s", to), http.StatusBadRequest)
+		return
+	}
 
 	switch to {
 	case "pdf":
@@ -86,14 +117,13 @@ func Convert(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = pdfConverter.ConvertToPDF(header.Filename)
+		err = pdfConverter.ConvertToPDF(tempFile) // Changed from header.Filename to tempFile
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Conversion error: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		// Read the converted file
-		outputFile := converter.GetOutputFilename(header.Filename, ".pdf")
+		outputFile := converter.GetOutputFilename(tempFile, ".pdf")
 		convertedData, err := os.ReadFile(outputFile)
 		if err != nil {
 			http.Error(w, "Error reading converted file", http.StatusInternalServerError)
@@ -175,4 +205,23 @@ func getContentType(format string) string {
 	default:
 		return "application/octet-stream"
 	}
+}
+
+// Progress monitoring
+type progressWriter struct {
+	total   int64
+	current int64
+	lastLog time.Time
+}
+
+func (pw *progressWriter) Write(p []byte) (n int, err error) {
+	n = len(p)
+	pw.current += int64(n)
+
+	if time.Since(pw.lastLog) >= time.Second {
+		progress := float64(pw.current) / float64(pw.total) * 100
+		fmt.Printf("Progress: %.2f%%\n", progress)
+		pw.lastLog = time.Now()
+	}
+	return n, nil
 }
