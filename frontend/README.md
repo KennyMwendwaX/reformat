@@ -1,36 +1,122 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Reformat Frontend
+
+A modern Next.js application for converting files between different formats with a sleek, user-friendly interface.
+
+## Features
+
+- 🎯 Intuitive drag-and-drop file upload
+- 🔄 Support for multiple file formats (PDF, Word, Images)
+- ⚡ Real-time conversion progress tracking
+- 🎨 Quality settings for optimized conversions
+- 📱 Responsive design with Tailwind CSS
+- 🎭 Smooth animations and transitions
+- 📊 Recent conversions history
+
+## Tech Stack
+
+- **Framework:** Next.js 14
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS
+- **UI Components:** shadcn/ui
+- **Icons:** Lucide React
+- **Animations:** Motion React
+- **Notifications:** Sonner
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Node.js** 18.0 or higher
+- **npm**, **pnpm**, **bun** or **yarn**
+
+### Installation
+
+1. Clone the repository:
+
+   ```bash
+   git clone <repository-url>
+   cd reformat/frontend
+   ```
+
+1. Install Dependencies:
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   # or
+   pnpm dev
+   # or
+   bun dev
+   ```
+1. Start the development server:
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   # or
+   pnpm dev
+   # or
+   bun dev
+   ```
+1. Open http://localhost:3000 with your browser to see the result.
+
+### Project Structure
+
+```
+frontend/
+├── src/
+│   ├── app/                    # Next.js app router files
+│   │   ├── globals.css         # Global styles
+│   │   ├── layout.tsx          # Root layout
+│   │   └── page.tsx            # Home page
+│   ├── components/             # React components
+│   │   ├── conversion-config.ts
+│   │   └── upload-area.ts
+│   └── lib/                    # Utility functions and configs
+│       ├── config.ts           # File type configurations
+│       ├── file-utils.ts       # File handling utilities
+│       ├── types.ts            # TypeScript type definitions
+│       └── utils.ts            # General utilities
+├── next.config.ts
+├── tailwind.config.ts
+├── components.json
+├── package-lock.json
+├── package.json
+├── tsconfig.json
+├── .gitignore
+└── README.md
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Key Components
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**UploadArea**
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Handles file drag-and-drop and selection
+- Validates file types and sizes
+- Provides real-time feedback
 
-## Learn More
+**ConversionConfig**
 
-To learn more about Next.js, take a look at the following resources:
+- Manages conversion settings
+- Supports multiple output formats
+- Provides real-time feedback
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### File Type Support
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**Input Formats**
 
-## Deploy on Vercel
+- Images: JPG, PNG, GIF, SVG
+- Documents: PDF, DOCX
+- Maximum file size: 100MB
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**Output Formats**
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- PDF → DOCX, JPG, PNG
+- DOCX → PDF
+- Images → PDF, various image formats
+
+### Configuration
+
+- **tailwind.config.ts**: Tailwind CSS configuration
+- **next.config.ts**: Next.js configuration
+- **components.json**: shadcn/ui components configuration
