@@ -14,7 +14,7 @@ A modern Next.js application for converting files between different formats with
 
 ## Tech Stack
 
-- **Framework:** Next.js 14
+- **Framework:** Next.js 15
 - **Language:** TypeScript
 - **Styling:** Tailwind CSS
 - **UI Components:** shadcn/ui
@@ -34,7 +34,7 @@ A modern Next.js application for converting files between different formats with
 1. Clone the repository:
 
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/KennyMwendwaX/reformat
    cd reformat/frontend
    ```
 
@@ -60,9 +60,9 @@ A modern Next.js application for converting files between different formats with
    ```
 1. Open http://localhost:3000 with your browser to see the result.
 
-### Project Structure
+## Project Structure
 
-```
+```plaintext
 frontend/
 ├── src/
 │   ├── app/                    # Next.js app router files
@@ -87,7 +87,7 @@ frontend/
 └── README.md
 ```
 
-### Key Components
+## Key Components
 
 **UploadArea**
 
@@ -101,7 +101,7 @@ frontend/
 - Supports multiple output formats
 - Provides real-time feedback
 
-### File Type Support
+## File Type Support
 
 **Input Formats**
 
@@ -115,7 +115,7 @@ frontend/
 - DOCX → PDF
 - Images → PDF, various image formats
 
-### Configuration
+## Configuration
 
 - **tailwind.config.ts**: Tailwind CSS configuration
 - **next.config.ts**: Next.js configuration

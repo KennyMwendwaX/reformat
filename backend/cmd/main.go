@@ -10,11 +10,11 @@ import (
 
 func main() {
 	// Conversion endpoint
-	http.HandleFunc("/convert", handlers.Convert)
+	http.HandleFunc("/api/convert", handlers.Convert)
 
 	// Configure server with reasonable timeouts
 	server := &http.Server{
-		Addr:         ":8080",
+		Addr:         ":8000",
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second, // Longer timeout for file conversions
 	}
