@@ -188,7 +188,7 @@ export default function ReformatConverter() {
                     quality={quality}
                     setOutputFormat={setOutputFormat}
                     setQuality={setQuality}
-                    onConvert={simulateConversion}
+                    // onConvert={simulateConversion}
                   />
                 )}
 
