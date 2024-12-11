@@ -3,17 +3,29 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/KennyMwendwaX/reformat/internal/handlers"
+	"github.com/joho/godotenv"
 )
 
 // CORS middleware to allow cross-origin requests
 func corsMiddleware(next http.Handler) http.Handler {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	clientUrl := os.Getenv("CLIENT_URL")
+	if clientUrl == "" {
+		log.Fatal("CLIENT_URL not set in .env file")
+	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000") // Allow requests from your frontend
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")   // Allowed HTTP methods
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")         // Allowed headers
+		w.Header().Set("Access-Control-Allow-Origin", clientUrl)             // Allow requests from your frontend
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS") // Allowed HTTP methods
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")       // Allowed headers
 
 		// Handle preflight requests
 		if r.Method == http.MethodOptions {
