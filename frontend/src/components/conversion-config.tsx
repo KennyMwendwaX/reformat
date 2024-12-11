@@ -11,6 +11,8 @@ import { Zap, Settings, Clock } from "lucide-react";
 import { FILE_TYPE_CONFIGS } from "@/lib/config";
 import { OutputFormat, ConversionQuality } from "@/lib/types";
 import { formatFileSize } from "@/lib/file-utils";
+import { useFileUploadMutation } from "@/lib/file-upload";
+import { toast } from "sonner";
 
 interface ConversionConfigProps {
   selectedFile: File;
@@ -29,8 +31,24 @@ export default function ConversionConfig({
   quality,
   setOutputFormat,
   setQuality,
-  onConvert,
 }: ConversionConfigProps) {
+  const { mutate } = useFileUploadMutation();
+
+  const handleConvert = () => {
+    mutate(
+      { file: selectedFile, fileType, outputFormat },
+      {
+        onSuccess: () => {
+          toast.success("File uploaded successfully!");
+        },
+        onError: (error) => {
+          console.log(error);
+          toast.error("Failed to upload the file.");
+        },
+      }
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-4">
@@ -110,7 +128,7 @@ export default function ConversionConfig({
         </div>
       </div>
       <Button
-        onClick={onConvert}
+        onClick={handleConvert}
         disabled={!outputFormat}
         className="w-full py-6 text-lg bg-teal-500 hover:bg-teal-600 text-white transition-colors duration-300">
         Start Conversion

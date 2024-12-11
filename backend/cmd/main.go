@@ -8,9 +8,26 @@ import (
 	"github.com/KennyMwendwaX/reformat/internal/handlers"
 )
 
+// CORS middleware to allow cross-origin requests
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000") // Allow requests from your frontend
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")   // Allowed HTTP methods
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")         // Allowed headers
+
+		// Handle preflight requests
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
 	// Conversion endpoint
-	http.HandleFunc("/api/convert", handlers.Convert)
+	http.Handle("/api/convert", corsMiddleware(http.HandlerFunc(handlers.Convert)))
 
 	// Configure server with reasonable timeouts
 	server := &http.Server{
