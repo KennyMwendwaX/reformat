@@ -32,6 +32,24 @@ export default function ReformatConverter() {
   const [, setIsConverting] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
+  const [downloadInfo, setDownloadInfo] = useState<{
+    url: string;
+    filename: string;
+  } | null>(null);
+
+  const handleDownload = () => {
+    if (downloadInfo) {
+      const link = document.createElement("a");
+      link.href = downloadInfo.url;
+      link.download = downloadInfo.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up the URL object
+      window.URL.revokeObjectURL(downloadInfo.url);
+    }
+  };
 
   const simulateConversion = async () => {
     if (!selectedFile || !outputFormat || !fileType) {
@@ -189,10 +207,12 @@ export default function ReformatConverter() {
                     setOutputFormat={setOutputFormat}
                     setQuality={setQuality}
                     onConvert={simulateConversion}
+                    setDownloadInfo={setDownloadInfo}
+                    setCurrentStep={setCurrentStep}
                   />
                 )}
 
-                {currentStep === 2 && (
+                {currentStep === 9 && (
                   <div className="text-center">
                     <RefreshCw className="h-16 w-16 animate-spin text-teal-500 mx-auto mb-4" />
                     <p className="text-xl font-semibold mb-2 text-teal-800">
@@ -208,7 +228,7 @@ export default function ReformatConverter() {
                   </div>
                 )}
 
-                {currentStep === 3 && (
+                {currentStep === 2 && (
                   <div className="text-center">
                     <CheckCircle2 className="h-16 w-16 text-teal-500 mx-auto mb-4" />
                     <p className="text-xl font-semibold mb-2 text-teal-800">
@@ -218,7 +238,9 @@ export default function ReformatConverter() {
                       Your file is ready for download
                     </p>
                     <div className="flex justify-center space-x-4">
-                      <Button className="bg-teal-500 hover:bg-teal-600 text-white">
+                      <Button
+                        className="bg-teal-500 hover:bg-teal-600 text-white"
+                        onClick={handleDownload}>
                         Download Converted File
                       </Button>
                       <Button

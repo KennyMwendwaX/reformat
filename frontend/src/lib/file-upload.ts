@@ -14,7 +14,7 @@ export const useFileUploadMutation = () => {
     }) => {
       const formData = new FormData();
       formData.append("file", file);
-      
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}?from=${fileType}&to=${outputFormat}`,
         {
@@ -24,19 +24,18 @@ export const useFileUploadMutation = () => {
       );
 
       if (!response.ok) {
-        throw new Error('File conversion failed');
+        throw new Error("Conversion failed");
       }
 
-      // Get the blob from the response
+      // Get original filename without extension
+      const originalName = file.name.split(".").slice(0, -1).join(".");
+
       const blob = await response.blob();
-      
-      // Create a download URL for the file
       const downloadUrl = window.URL.createObjectURL(blob);
-      
+
       return {
-        blob,
         downloadUrl,
-        filename: outputFormat ? `converted.${outputFormat}` : 'converted_file'
+        filename: `${originalName}.${outputFormat}`, // Use original filename with new extension
       };
     },
   });

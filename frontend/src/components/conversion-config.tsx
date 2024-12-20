@@ -1,4 +1,3 @@
-import React from "react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -22,6 +21,13 @@ interface ConversionConfigProps {
   setOutputFormat: (format: OutputFormat) => void;
   setQuality: (quality: ConversionQuality) => void;
   onConvert: () => void;
+  setDownloadInfo: React.Dispatch<
+    React.SetStateAction<{
+      url: string;
+      filename: string;
+    } | null>
+  >;
+  setCurrentStep: React.Dispatch<React.SetStateAction<number>>;
 }
 
 export default function ConversionConfig({
@@ -31,6 +37,8 @@ export default function ConversionConfig({
   quality,
   setOutputFormat,
   setQuality,
+  setDownloadInfo,
+  setCurrentStep,
 }: ConversionConfigProps) {
   const { mutate } = useFileUploadMutation();
 
@@ -38,12 +46,17 @@ export default function ConversionConfig({
     mutate(
       { file: selectedFile, fileType, outputFormat },
       {
-        onSuccess: () => {
-          toast.success("File uploaded successfully!");
+        onSuccess: (data) => {
+          setCurrentStep(2);
+          setDownloadInfo({
+            url: data.downloadUrl,
+            filename: data.filename,
+          });
+          toast.success("File converted successfully!");
         },
         onError: (error) => {
           console.log(error);
-          toast.error("Failed to upload the file.");
+          toast.error("Failed to convert the file.");
         },
       }
     );
