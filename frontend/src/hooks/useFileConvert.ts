@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
-import { OutputFormat } from "./types";
+import { OutputFormat } from "../lib/types";
 
-export const useFileUploadMutation = () => {
+export const useFileConvert = () => {
   return useMutation({
     mutationFn: async ({
       file,

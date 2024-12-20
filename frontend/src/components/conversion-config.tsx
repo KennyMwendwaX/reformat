@@ -10,7 +10,7 @@ import { Zap, Settings, Clock } from "lucide-react";
 import { FILE_TYPE_CONFIGS } from "@/lib/config";
 import { OutputFormat, ConversionQuality } from "@/lib/types";
 import { formatFileSize } from "@/lib/file-utils";
-import { useFileUploadMutation } from "@/lib/file-upload";
+import { useFileConvert } from "@/hooks/useFileConvert";
 import { toast } from "sonner";
 
 interface ConversionConfigProps {
@@ -40,7 +40,7 @@ export default function ConversionConfig({
   setDownloadInfo,
   setCurrentStep,
 }: ConversionConfigProps) {
-  const { mutate } = useFileUploadMutation();
+  const { mutate } = useFileConvert();
 
   const handleConvert = () => {
     mutate(
