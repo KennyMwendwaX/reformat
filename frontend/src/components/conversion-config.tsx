@@ -20,7 +20,6 @@ interface ConversionConfigProps {
   quality: ConversionQuality;
   setOutputFormat: (format: OutputFormat) => void;
   setQuality: (quality: ConversionQuality) => void;
-  onConvert: () => void;
   setDownloadInfo: React.Dispatch<
     React.SetStateAction<{
       url: string;

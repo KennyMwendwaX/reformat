@@ -13,23 +13,21 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
-import { Progress } from "@/components/ui/progress";
-import { toast, Toaster } from "sonner";
+import { Toaster } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { motion, AnimatePresence } from "motion/react";
-import { ConversionQuality, ConvertedFile, OutputFormat } from "@/lib/types";
-import RecentConversions from "@/components/recent-conversions";
-import { formatFileSize } from "@/lib/file-utils";
+import { ConversionQuality, OutputFormat } from "@/lib/types";
+// import RecentConversions from "@/components/recent-conversions";
 import UploadArea from "@/components/upload-area";
 import ConversionConfig from "@/components/conversion-config";
+import Loading from "@/components/loading";
 
 export default function ReformatConverter() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileType, setFileType] = useState<string | null>(null);
   const [outputFormat, setOutputFormat] = useState<OutputFormat | null>(null);
   const [quality, setQuality] = useState<ConversionQuality>("balanced");
-  const [convertedFiles, setConvertedFiles] = useState<ConvertedFile[]>([]);
-  const [, setIsConverting] = useState(false);
+  // const [convertedFiles] = useState<ConvertedFile[]>([]);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [downloadInfo, setDownloadInfo] = useState<{
@@ -51,61 +49,6 @@ export default function ReformatConverter() {
     }
   };
 
-  const simulateConversion = async () => {
-    if (!selectedFile || !outputFormat || !fileType) {
-      toast.error("Please select a file and output format");
-      return;
-    }
-
-    setIsConverting(true);
-    setCurrentStep(2);
-    const newFileEntry: ConvertedFile = {
-      id: Date.now().toString(),
-      originalName: selectedFile.name,
-      originalType: fileType,
-      outputFormat,
-      status: "converting",
-      progress: 0,
-      size: formatFileSize(selectedFile.size),
-      convertedAt: new Date(),
-    };
-
-    setConvertedFiles((prev) => [newFileEntry, ...prev]);
-
-    try {
-      for (let progress = 0; progress <= 100; progress += 10) {
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        setConvertedFiles((prev) =>
-          prev.map((file) =>
-            file.id === newFileEntry.id
-              ? {
-                  ...file,
-                  progress,
-                  status: progress === 100 ? "completed" : "converting",
-                }
-              : file
-          )
-        );
-      }
-      toast.success(
-        `File converted to ${outputFormat.toUpperCase()} successfully!`
-      );
-    } catch (error) {
-      console.error(error);
-      toast.error("Conversion failed. Please try again.");
-      setConvertedFiles((prev) =>
-        prev.map((file) =>
-          file.id === newFileEntry.id
-            ? { ...file, status: "failed", progress: 0 }
-            : file
-        )
-      );
-    } finally {
-      setIsConverting(false);
-      setCurrentStep(3);
-    }
-  };
-
   const resetConversion = () => {
     setSelectedFile(null);
     setFileType(null);
@@ -124,9 +67,9 @@ export default function ReformatConverter() {
     <div className="min-h-screen bg-gradient-to-br from-teal-100 via-white to-mint-100 text-teal-900 p-6 md:p-8">
       <Toaster richColors />
       <div className="max-w-4xl mx-auto">
-        <header className="relative text-center py-8 px-4">
+        <header className="relative text-center py-4 px-4">
           {/* Logo and title container */}
-          <div className="flex items-center justify-center gap-4 mb-3">
+          <div className="flex items-center justify-center gap-4 mb-2">
             {/* Icon container */}
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-tr from-teal-500 to-purple-500 rounded-lg rotate-6 scale-105 opacity-70" />
@@ -206,29 +149,16 @@ export default function ReformatConverter() {
                     quality={quality}
                     setOutputFormat={setOutputFormat}
                     setQuality={setQuality}
-                    onConvert={simulateConversion}
                     setDownloadInfo={setDownloadInfo}
                     setCurrentStep={setCurrentStep}
                   />
                 )}
 
-                {currentStep === 9 && (
-                  <div className="text-center">
-                    <RefreshCw className="h-16 w-16 animate-spin text-teal-500 mx-auto mb-4" />
-                    <p className="text-xl font-semibold mb-2 text-teal-800">
-                      Converting your file...
-                    </p>
-                    <p className="text-teal-600 mb-4">
-                      This may take a few moments
-                    </p>
-                    <Progress
-                      value={convertedFiles[0]?.progress || 0}
-                      className="h-2 w-full max-w-md mx-auto [&>*]:bg-teal-500"
-                    />
-                  </div>
+                {currentStep === 2 && (
+                  <Loading setCurrentStep={setCurrentStep} />
                 )}
 
-                {currentStep === 2 && (
+                {currentStep === 3 && (
                   <div className="text-center">
                     <CheckCircle2 className="h-16 w-16 text-teal-500 mx-auto mb-4" />
                     <p className="text-xl font-semibold mb-2 text-teal-800">
@@ -256,7 +186,7 @@ export default function ReformatConverter() {
             </AnimatePresence>
           </CardContent>
         </Card>
-        <RecentConversions convertedFiles={convertedFiles} />
+        {/* <RecentConversions convertedFiles={convertedFiles} /> */}
       </div>
     </div>
   );
