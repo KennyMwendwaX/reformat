@@ -17,7 +17,6 @@ import { Toaster } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { motion, AnimatePresence } from "motion/react";
 import { ConversionQuality, OutputFormat } from "@/lib/types";
-// import RecentConversions from "@/components/recent-conversions";
 import UploadArea from "@/components/upload-area";
 import ConversionConfig from "@/components/conversion-config";
 import Loading from "@/components/loading";
@@ -27,7 +26,6 @@ export default function ReformatConverter() {
   const [fileType, setFileType] = useState<string | null>(null);
   const [outputFormat, setOutputFormat] = useState<OutputFormat | null>(null);
   const [quality, setQuality] = useState<ConversionQuality>("balanced");
-  // const [convertedFiles] = useState<ConvertedFile[]>([]);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [downloadInfo, setDownloadInfo] = useState<{
